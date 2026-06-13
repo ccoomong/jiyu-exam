@@ -110,7 +110,10 @@ function renderHome(){
     card.appendChild(el("div","card-desc", sub.desc));
     if(sub.ready){
       const n = sub.chapters.reduce((s,c)=>s+c.questions.length,0);
-      card.appendChild(el("div","badge", "챕터 "+sub.chapters.length+"개 · 문제 "+n+"개 ♡"));
+      const badge = sub.mode==="exam"
+        ? sub.chapters.length+"회 모의고사 · OX+서술형 ♡"
+        : "챕터 "+sub.chapters.length+"개 · 문제 "+n+"개 ♡";
+      card.appendChild(el("div","badge", badge));
       card.onclick = ()=> renderSubject(sub);
     }else{
       card.appendChild(el("div","badge soon", "자료 준비 중이에요 🌸"));
@@ -125,6 +128,7 @@ function renderHome(){
    화면 2: 챕터 선택
    ========================================================= */
 function renderSubject(sub){
+  if(sub.mode === "exam") return renderExamSubject(sub);
   topSub.textContent = sub.name + " — 풀 때마다 다른 문제가 나와요 ♡";
   const sec = screens.subject;
   sec.innerHTML = "";
@@ -181,15 +185,48 @@ function renderSubject(sub){
   show("subject");
 }
 
+/* 지구의 역사 — 10회 모의고사 화면 */
+function renderExamSubject(sub){
+  topSub.textContent = sub.name + " — 회차를 골라 모의고사처럼 풀어봐 ♡";
+  const sec = screens.subject;
+  sec.innerHTML = "";
+
+  const back = el("button","back","‹ 과목 다시 고르기");
+  back.onclick = renderHome;
+  sec.appendChild(back);
+
+  sec.appendChild(el("div","section-h", sub.name + " 💗"));
+  sec.appendChild(el("div","section-sub", "작년 기말처럼 OX 객관식이 많고 서술형 2문제가 있어요. 회차를 골라 실전처럼 풀어봐!"));
+
+  const grid = el("div","grid chips");
+  sub.chapters.forEach(ex=>{
+    const card = el("div","card ch-card" + (ex.questions.length ? "" : " locked"));
+    const top = el("div","ch-top");
+    top.appendChild(el("div","card-name", ex.name));
+    if(ex.sub) top.appendChild(el("div","ch-sub", ex.sub));
+    card.appendChild(top);
+    if(ex.questions.length){
+      const ct = countTypes(ex.questions);
+      card.appendChild(el("div","ch-count","OX "+ct.mc+"문제 · 서술형 "+ct.essay+"문제 ♡"));
+      card.onclick = ()=> startQuiz(sub.name+" · "+ex.name, ex.questions, ex.questions.length, true);
+    }else{
+      card.appendChild(el("div","ch-count","아직 준비 중이에요 🌸"));
+    }
+    grid.appendChild(card);
+  });
+  sec.appendChild(grid);
+  show("subject");
+}
+
 /* =========================================================
    화면 3: 퀴즈
    ========================================================= */
 let QZ = null;
-function startQuiz(title, pool, count){
-  const questions = pickQuestions(pool, count);
+function startQuiz(title, pool, count, keepOrder){
+  const questions = keepOrder ? pool.slice() : pickQuestions(pool, count);
   questions.forEach(q=>{ delete q._done; });   // 재출제 대비 상태 초기화
   QZ = {
-    title, pool, count,
+    title, pool, count, keepOrder: !!keepOrder,
     questions,
     idx: 0,
     mcTotal: 0, mcCorrect: 0,
@@ -227,17 +264,19 @@ function renderQuestion(){
   pw.appendChild(track);
   const meta = el("div","progress-meta");
   meta.appendChild(el("span",null,"문제 "+(QZ.idx+1)+" / "+total));
-  meta.appendChild(el("span",null,"맞춘 객관식 "+QZ.mcCorrect+" / "+QZ.mcTotal+" ♡"));
+  meta.appendChild(el("span",null,"맞춘 문제 "+QZ.mcCorrect+" / "+QZ.mcTotal+" ♡"));
   pw.appendChild(meta);
   sec.appendChild(pw);
 
   /* 문제 카드 */
   const card = el("div","qcard");
   if(q.type==="essay") card.appendChild(el("div","qtype essay","✍ 서술형"));
+  else if(q.type==="ox") card.appendChild(el("div","qtype ox","⭕❌ OX 문제"));
   else card.appendChild(el("div","qtype mc","◎ 객관식"));
   card.appendChild(el("div","qtext", q.q));
 
   if(q.type==="mc") renderMC(card, q);
+  else if(q.type==="ox") renderOX(card, q);
   else renderEssay(card, q);
 
   sec.appendChild(card);
@@ -289,6 +328,47 @@ function renderMC(card, q){
     explain.classList.add("show");
     next.style.visibility = "visible";
   }
+  next.onclick = goNext;
+}
+
+/* ----- OX 문제 ----- */
+function renderOX(card, q){
+  const wrap = el("div","ox-options");
+  const oBtn = el("button","ox-btn ox-o","⭕<span>맞다 (O)</span>");
+  const xBtn = el("button","ox-btn ox-x","❌<span>아니다 (X)</span>");
+  wrap.appendChild(oBtn);
+  wrap.appendChild(xBtn);
+  card.appendChild(wrap);
+
+  const explain = el("div","explain");
+  card.appendChild(explain);
+
+  const nav = el("div","nav");
+  nav.appendChild(el("div"));
+  const next = el("button","btn", QZ.idx<QZ.questions.length-1 ? "다음 ♡" : "결과 보기 🎀");
+  next.style.visibility = "hidden";
+  nav.appendChild(next);
+  card.appendChild(nav);
+
+  function choose(ans){   // ans: true=O, false=X
+    if(q._done) return;
+    q._done = true;
+    const correct = q.answer;       // true / false
+    const ok = (ans===correct);
+    oBtn.classList.add("disabled");
+    xBtn.classList.add("disabled");
+    (correct ? oBtn : xBtn).classList.add("correct");
+    if(!ok) (ans ? oBtn : xBtn).classList.add("wrong");
+    if(ok) QZ.mcCorrect++;
+    QZ.answered.push({type:"ox", ok});
+    explain.innerHTML = (ok
+        ? "<b>맞았어! 잘했어 💗</b><br/>"
+        : "<b>아쉬워! 정답은 "+(correct ? "⭕ O (맞다)" : "❌ X (아니다)")+"야 🌸</b><br/>") + q.explain;
+    explain.classList.add("show");
+    next.style.visibility = "visible";
+  }
+  oBtn.onclick = ()=> choose(true);
+  xBtn.onclick = ()=> choose(false);
   next.onclick = goNext;
 }
 
@@ -374,11 +454,12 @@ function renderResult(){
   box.appendChild(el("div","score-label", QZ.title));
   box.appendChild(el("div","result-msg", msg.replace(/\n/g,"<br/>")));
 
+  const hasOX = QZ.questions.some(q=>q.type==="ox");
   const stats = el("div","result-stats");
   if(mcT){
     const s = el("div","stat");
     s.appendChild(el("div","n", mcC+" / "+mcT));
-    s.appendChild(el("div","t","객관식 정답"));
+    s.appendChild(el("div","t", hasOX ? "OX 정답" : "객관식 정답"));
     stats.appendChild(s);
   }
   if(esT){
@@ -390,8 +471,8 @@ function renderResult(){
   box.appendChild(stats);
 
   const actions = el("div","result-actions");
-  const retry = el("button","btn","새 문제로 또 풀기 🔄");  // 매번 새 랜덤 출제
-  retry.onclick = ()=> startQuiz(QZ.title, QZ.pool, QZ.count);
+  const retry = el("button","btn", QZ.keepOrder ? "이 회차 다시 풀기 🔄" : "새 문제로 또 풀기 🔄");
+  retry.onclick = ()=> startQuiz(QZ.title, QZ.pool, QZ.count, QZ.keepOrder);
   const home = el("button","btn ghost","과목 선택으로 🏠");
   home.onclick = renderHome;
   actions.appendChild(retry);

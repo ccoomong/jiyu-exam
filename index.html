@@ -183,10 +183,22 @@
   footer{text-align:center;color:var(--text-soft);font-size:13px;margin-top:40px;line-height:1.7;}
   footer .hh{color:var(--pink);}
 
+  /* OX 문제 */
+  .qtype.ox{background:#fff2cc;color:#c79a2b;}
+  .ox-options{display:flex;gap:16px;}
+  .ox-btn{flex:1;background:#fff;border:2px solid #ffe0ec;border-radius:22px;padding:24px 10px;
+    font-size:38px;cursor:pointer;transition:all .15s;font-family:'Jua',sans-serif;color:var(--text);line-height:1.1;}
+  .ox-btn span{display:block;font-size:15px;margin-top:8px;color:var(--text-soft);font-family:'Gowun Dodum',sans-serif;}
+  .ox-btn:hover:not(.disabled){border-color:var(--pink);background:var(--pink-pale);transform:translateY(-3px);}
+  .ox-btn.disabled{cursor:default;}
+  .ox-btn.correct{border-color:var(--correct);background:var(--correct-bg);}
+  .ox-btn.wrong{border-color:var(--wrong);background:var(--wrong-bg);}
+
   .hidden{display:none !important;}
   @media (max-width:520px){
     .qcard{padding:22px 18px;}
     .qtext{font-size:16.5px;}
+    .ox-btn{font-size:32px;padding:20px 6px;}
   }
 </style>
 </head>
@@ -218,6 +230,7 @@
   </footer>
 </div>
 
+<script src="earth.js"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
 </body>

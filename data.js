@@ -932,17 +932,13 @@ const SUBJECTS = [
     ]
   },
 
-  /* ============ 과목 2: 지구의 역사 (자료 준비 중) ============ */
+  /* ============ 과목 2: 지구의 역사 (10회 모의고사) ============ */
   {
     id: "earth",
     name: "지구의 역사",
-    desc: "자료 준비 중 — 곧 채워질 예정이에요 ♡",
-    ready: false,
-    chapters: [
-      { id: "earth-ch1", name: "1단원", sub: "준비 중", questions: [] },
-      { id: "earth-ch2", name: "2단원", sub: "준비 중", questions: [] },
-      { id: "earth-ch3", name: "3단원", sub: "준비 중", questions: [] },
-      { id: "earth-ch4", name: "4단원", sub: "준비 중", questions: [] }
-    ]
+    desc: "10회 모의고사 — OX 객관식 + 서술형 2문제 (작년 기말 스타일)",
+    ready: true,
+    mode: "exam",
+    chapters: EARTH_EXAMS   // earth.js 에서 정의
   }
 ];
