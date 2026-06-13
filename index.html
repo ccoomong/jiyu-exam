@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>지유의 시험 대비 ♡</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Gaegu:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg1:#fff5f9;
+    --bg2:#ffe7f1;
+    --pink:#ff7ea8;
+    --pink-deep:#ef5b8c;
+    --pink-soft:#ffd5e3;
+    --pink-pale:#ffeaf2;
+    --card:#ffffff;
+    --text:#6b4a57;
+    --text-soft:#a07c8b;
+    --correct:#3cc6a0;
+    --correct-bg:#e6fbf4;
+    --wrong:#ff6b8a;
+    --wrong-bg:#fff0f3;
+    --shadow:0 10px 30px rgba(255,126,168,.18);
+    --shadow-sm:0 6px 16px rgba(255,126,168,.16);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Gowun Dodum',sans-serif;
+    color:var(--text);
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    background-attachment:fixed;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  /* 떠다니는 하트 배경 */
+  #hearts{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+  .floaty{position:absolute;bottom:-40px;color:var(--pink-soft);opacity:.55;animation:rise linear forwards;}
+  @keyframes rise{
+    0%{transform:translateY(0) rotate(0deg);opacity:0;}
+    12%{opacity:.6;}
+    100%{transform:translateY(-115vh) rotate(360deg);opacity:0;}
+  }
+  .wrap{position:relative;z-index:1;max-width:880px;margin:0 auto;padding:28px 20px 80px;}
+
+  /* 헤더 */
+  header.top{text-align:center;margin:18px 0 30px;}
+  .title{
+    font-family:'Jua',sans-serif;
+    font-size:clamp(30px,7vw,52px);
+    color:var(--pink-deep);
+    margin:0;
+    letter-spacing:1px;
+    text-shadow:2px 3px 0 #ffe1ec;
+  }
+  .subtitle{font-size:15px;color:var(--text-soft);margin-top:10px;}
+  .heartline{font-size:20px;letter-spacing:4px;color:var(--pink);margin-top:6px;}
+
+  /* 카드 그리드 */
+  .grid{display:grid;gap:18px;}
+  .grid.two{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));}
+  .grid.chips{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));}
+
+  .card{
+    background:var(--card);
+    border-radius:26px;
+    padding:26px 24px;
+    box-shadow:var(--shadow);
+    border:2px solid #ffe3ee;
+    cursor:pointer;
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s;
+    position:relative;
+    overflow:hidden;
+  }
+  .card:hover{transform:translateY(-5px) scale(1.012);box-shadow:0 16px 36px rgba(255,126,168,.28);border-color:var(--pink-soft);}
+  .card .corner{position:absolute;right:-10px;top:-12px;font-size:64px;color:#ffe9f1;transform:rotate(12deg);pointer-events:none;}
+  .card.locked{cursor:not-allowed;opacity:.72;background:#fff8fb;}
+  .card.locked:hover{transform:none;box-shadow:var(--shadow);}
+  .card-name{font-family:'Jua',sans-serif;font-size:23px;color:var(--pink-deep);margin:0 0 8px;position:relative;}
+  .card-desc{font-size:14px;color:var(--text-soft);line-height:1.6;position:relative;}
+  .badge{display:inline-block;background:var(--pink-pale);color:var(--pink-deep);font-size:12px;
+    padding:3px 12px;border-radius:999px;margin-top:14px;font-family:'Gaegu',sans-serif;font-weight:700;}
+  .badge.soon{background:#f1eef2;color:#a99;}
+
+  /* 챕터 카드 */
+  .ch-card{padding:22px 22px;}
+  .ch-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .ch-sub{font-size:12px;color:var(--text-soft);background:var(--pink-pale);padding:2px 10px;border-radius:999px;}
+  .ch-count{font-size:13px;color:var(--text-soft);margin-top:10px;}
+
+  /* 버튼 */
+  .btn{
+    font-family:'Jua',sans-serif;
+    border:none;border-radius:999px;cursor:pointer;
+    background:linear-gradient(135deg,var(--pink),var(--pink-deep));
+    color:#fff;padding:13px 26px;font-size:16px;
+    box-shadow:var(--shadow-sm);transition:transform .15s, filter .15s;
+    letter-spacing:.5px;
+  }
+  .btn:hover{transform:translateY(-2px);filter:brightness(1.04);}
+  .btn:active{transform:translateY(0);}
+  .btn.ghost{background:#fff;color:var(--pink-deep);border:2px solid var(--pink-soft);box-shadow:none;}
+  .btn.ghost:hover{background:var(--pink-pale);}
+  .btn.big{width:100%;padding:18px;font-size:18px;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+  .back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--pink-deep);
+    font-family:'Gaegu',sans-serif;font-weight:700;font-size:17px;cursor:pointer;margin-bottom:14px;padding:6px 4px;}
+  .back:hover{text-decoration:underline;}
+
+  .section-h{font-family:'Jua',sans-serif;color:var(--pink-deep);font-size:26px;margin:6px 0 4px;}
+  .section-sub{color:var(--text-soft);font-size:14px;margin-bottom:22px;}
+
+  .divider{display:flex;align-items:center;gap:12px;color:var(--pink-soft);margin:26px 0 18px;}
+  .divider::before,.divider::after{content:"";flex:1;height:2px;background:repeating-linear-gradient(90deg,var(--pink-soft) 0 8px,transparent 8px 16px);}
+  .divider span{font-family:'Gaegu',sans-serif;font-weight:700;color:var(--pink);font-size:15px;}
+
+  /* 퀴즈 */
+  .quiz-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:6px;flex-wrap:wrap;}
+  .quiz-title{font-family:'Jua',sans-serif;color:var(--pink-deep);font-size:22px;}
+  .progress-wrap{margin:14px 0 22px;}
+  .progress-track{height:16px;background:#ffe3ee;border-radius:999px;overflow:hidden;border:1px solid #ffd2e1;}
+  .progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--pink),var(--pink-deep));border-radius:999px;transition:width .4s ease;}
+  .progress-meta{display:flex;justify-content:space-between;font-size:13px;color:var(--text-soft);margin-top:7px;}
+
+  .qcard{background:var(--card);border-radius:26px;padding:28px 26px;box-shadow:var(--shadow);border:2px solid #ffe3ee;}
+  .qtype{display:inline-block;font-family:'Gaegu',sans-serif;font-weight:700;font-size:13px;padding:4px 14px;border-radius:999px;margin-bottom:14px;}
+  .qtype.mc{background:var(--pink-pale);color:var(--pink-deep);}
+  .qtype.essay{background:#eef4ff;color:#6b7fd0;}
+  .qtext{font-size:18px;line-height:1.7;margin-bottom:22px;font-weight:400;}
+
+  .options{display:flex;flex-direction:column;gap:12px;}
+  .opt{
+    text-align:left;background:#fff;border:2px solid #ffe0ec;border-radius:18px;
+    padding:15px 18px;font-family:'Gowun Dodum',sans-serif;font-size:15.5px;color:var(--text);
+    cursor:pointer;transition:all .14s;display:flex;gap:12px;align-items:flex-start;line-height:1.55;
+  }
+  .opt:hover:not(.disabled){border-color:var(--pink);background:var(--pink-pale);}
+  .opt .mark{flex:0 0 26px;height:26px;border-radius:50%;background:var(--pink-pale);color:var(--pink-deep);
+    display:flex;align-items:center;justify-content:center;font-family:'Jua',sans-serif;font-size:14px;}
+  .opt.disabled{cursor:default;}
+  .opt.correct{border-color:var(--correct);background:var(--correct-bg);}
+  .opt.correct .mark{background:var(--correct);color:#fff;}
+  .opt.wrong{border-color:var(--wrong);background:var(--wrong-bg);}
+  .opt.wrong .mark{background:var(--wrong);color:#fff;}
+
+  .explain{margin-top:18px;background:var(--pink-pale);border-radius:18px;padding:16px 18px;font-size:15px;line-height:1.7;
+    border-left:5px solid var(--pink);display:none;}
+  .explain.show{display:block;animation:pop .25s ease;}
+  .explain b{color:var(--pink-deep);}
+  @keyframes pop{from{transform:translateY(6px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+
+  textarea.answer{width:100%;min-height:120px;border:2px solid var(--pink-soft);border-radius:18px;padding:14px 16px;
+    font-family:'Gowun Dodum',sans-serif;font-size:15px;color:var(--text);resize:vertical;line-height:1.7;background:#fffafc;}
+  textarea.answer:focus{outline:none;border-color:var(--pink);}
+
+  .model{margin-top:16px;background:#f6f9ff;border-radius:18px;padding:18px;border-left:5px solid #9fb4ee;display:none;}
+  .model.show{display:block;animation:pop .25s ease;}
+  .model .mh{font-family:'Jua',sans-serif;color:#6b7fd0;margin-bottom:8px;font-size:16px;}
+  .model .mbody{font-size:15px;line-height:1.8;}
+  .kw{margin-top:12px;display:flex;flex-wrap:wrap;gap:7px;}
+  .kw span{background:#e7eeff;color:#5f73c4;font-size:12.5px;padding:3px 11px;border-radius:999px;font-family:'Gaegu',sans-serif;font-weight:700;}
+
+  .selfcheck{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .selfcheck .lbl{font-size:14px;color:var(--text-soft);font-family:'Gaegu',sans-serif;font-weight:700;}
+
+  .nav{display:flex;justify-content:space-between;gap:12px;margin-top:24px;}
+
+  /* 결과 */
+  .result{text-align:center;background:var(--card);border-radius:30px;padding:40px 28px;box-shadow:var(--shadow);border:2px solid #ffe3ee;}
+  .result .big-emoji{font-size:70px;line-height:1;}
+  .score-ring{font-family:'Jua',sans-serif;font-size:52px;color:var(--pink-deep);margin:14px 0 4px;}
+  .score-label{color:var(--text-soft);font-size:15px;}
+  .result-msg{font-family:'Gaegu',sans-serif;font-weight:700;font-size:22px;color:var(--pink);margin:20px 0;line-height:1.5;}
+  .result-stats{display:flex;justify-content:center;gap:26px;margin:24px 0;flex-wrap:wrap;}
+  .stat{background:var(--pink-pale);border-radius:18px;padding:14px 22px;min-width:96px;}
+  .stat .n{font-family:'Jua',sans-serif;font-size:26px;color:var(--pink-deep);}
+  .stat .t{font-size:13px;color:var(--text-soft);margin-top:2px;}
+  .result-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:10px;}
+
+  footer{text-align:center;color:var(--text-soft);font-size:13px;margin-top:40px;line-height:1.7;}
+  footer .hh{color:var(--pink);}
+
+  .hidden{display:none !important;}
+  @media (max-width:520px){
+    .qcard{padding:22px 18px;}
+    .qtext{font-size:16.5px;}
+  }
+</style>
+</head>
+<body>
+<div id="hearts"></div>
+
+<div class="wrap">
+  <header class="top">
+    <h1 class="title">지유의 시험 대비</h1>
+    <div class="heartline">♡ ♥ ♡ ♥ ♡</div>
+    <div class="subtitle" id="topSub">우리 지유, 오늘도 화이팅! 과목을 골라봐 ♡</div>
+  </header>
+
+  <!-- 화면 1: 과목 선택 -->
+  <section id="screen-home"></section>
+
+  <!-- 화면 2: 챕터 선택 -->
+  <section id="screen-subject" class="hidden"></section>
+
+  <!-- 화면 3: 퀴즈 -->
+  <section id="screen-quiz" class="hidden"></section>
+
+  <!-- 화면 4: 결과 -->
+  <section id="screen-result" class="hidden"></section>
+
+  <footer>
+    만든 사람 <span class="hh">♡ 준우 ♡</span><br/>
+    지유가 시험 잘 보라고 만든 작은 선물이야
+  </footer>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
