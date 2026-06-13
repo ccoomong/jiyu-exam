@@ -1,6 +1,42 @@
 /* =========================================================
    지유의 시험 대비 ♡  —  앱 로직
+   - 매번 랜덤 출제 (안 풀어본 문제 우선)
+   - 보기 순서도 매번 섞기
    ========================================================= */
+
+/* ---------- 문제마다 고유 id 부여 (출제 기록용) ---------- */
+SUBJECTS.forEach(sub=>{
+  sub.chapters.forEach(ch=>{
+    ch.questions.forEach((q,i)=>{ q._id = sub.id+"/"+ch.id+"/"+i; });
+  });
+});
+
+/* ---------- 출제 기록 (안 풀어본 문제 우선) ---------- */
+const SEEN_KEY = "jiyu_seen_v2";
+function loadSeen(){
+  try{ return new Set(JSON.parse(localStorage.getItem(SEEN_KEY)||"[]")); }
+  catch(e){ return new Set(); }
+}
+function saveSeen(set){
+  try{ localStorage.setItem(SEEN_KEY, JSON.stringify([...set])); }catch(e){}
+}
+/* pool에서 count개를 안 본 것 우선으로 뽑고, 다 봤으면 그 풀만 기록을 비워 다시 순환 */
+function pickQuestions(pool, count){
+  count = Math.min(count, pool.length);
+  const seen = loadSeen();
+  let unseen = shuffle(pool.filter(q=>!seen.has(q._id)));
+  const chosen = [];
+  for(const q of unseen){ if(chosen.length>=count) break; chosen.push(q); }
+  if(chosen.length < count){
+    // 안 본 게 부족하면: 이 풀의 기록을 비우고(순환) 나머지를 채움
+    pool.forEach(q=> seen.delete(q._id));
+    const rest = shuffle(pool.filter(q=>!chosen.includes(q)));
+    for(const q of rest){ if(chosen.length>=count) break; chosen.push(q); }
+  }
+  chosen.forEach(q=> seen.add(q._id));
+  saveSeen(seen);
+  return shuffle(chosen);
+}
 
 /* ---------- 떠다니는 하트 ---------- */
 (function heartsBg(){
@@ -55,6 +91,10 @@ function countTypes(qs){
   return {mc, essay, total:qs.length};
 }
 
+/* 챕터별 랜덤 출제 개수 */
+const CHAPTER_COUNT = 12;
+const FULL_COUNT = 25;
+
 /* =========================================================
    화면 1: 과목 선택
    ========================================================= */
@@ -85,7 +125,7 @@ function renderHome(){
    화면 2: 챕터 선택
    ========================================================= */
 function renderSubject(sub){
-  topSub.textContent = sub.name + " — 챕터를 고르거나, 전체 범위로 풀어봐 ♡";
+  topSub.textContent = sub.name + " — 풀 때마다 다른 문제가 나와요 ♡";
   const sec = screens.subject;
   sec.innerHTML = "";
 
@@ -94,9 +134,9 @@ function renderSubject(sub){
   sec.appendChild(back);
 
   sec.appendChild(el("div","section-h", sub.name + " 💗"));
-  sec.appendChild(el("div","section-sub", "챕터별로 차근차근 풀거나, 전체 범위로 실전처럼 풀 수 있어!"));
+  sec.appendChild(el("div","section-sub", "풀 때마다 안 풀어본 문제부터 랜덤으로 새로 나와요. 보기 순서도 매번 섞여요!"));
 
-  /* 전체 범위 버튼들 */
+  /* 전체 범위 */
   const allQs = sub.chapters.flatMap(c=>c.questions);
   if(allQs.length){
     const fullCard = el("div","card");
@@ -105,21 +145,21 @@ function renderSubject(sub){
     fullCard.appendChild(el("div","card-name","전체 범위 모의고사 ✨"));
     const ct = countTypes(allQs);
     fullCard.appendChild(el("div","card-desc",
-      "모든 챕터의 문제를 한 번에! (객관식 "+ct.mc+" · 서술형 "+ct.essay+" · 총 "+ct.total+"문제)"));
+      "전 챕터에서 랜덤 출제! (전체 문제풀: 객관식 "+ct.mc+" · 서술형 "+ct.essay+" · 총 "+ct.total+"개)"));
     const row = el("div","selfcheck");
-    const b1 = el("button","btn","전체 범위 풀기 ♡");
-    b1.onclick = ()=> startQuiz(sub.name+" · 전체 범위", allQs, false);
-    const b2 = el("button","btn ghost","전체 + 순서 섞기 🔀");
-    b2.onclick = ()=> startQuiz(sub.name+" · 전체 범위(섞기)", allQs, true);
+    row.style.marginTop = "18px";
+    const b1 = el("button","btn","랜덤 "+Math.min(FULL_COUNT,ct.total)+"문제 풀기 ♡");
+    b1.onclick = ()=> startQuiz(sub.name+" · 전체 랜덤", allQs, FULL_COUNT);
+    const b2 = el("button","btn ghost","전체 다 풀기 ("+ct.total+") 📚");
+    b2.onclick = ()=> startQuiz(sub.name+" · 전체 범위", allQs, allQs.length);
     row.appendChild(b1); row.appendChild(b2);
     fullCard.appendChild(row);
-    row.style.marginTop = "18px";
     sec.appendChild(fullCard);
   }
 
   sec.appendChild(el("div","divider","<span>♡ 챕터별 연습 ♡</span>"));
 
-  /* 챕터별 카드 */
+  /* 챕터별 */
   const grid = el("div","grid chips");
   sub.chapters.forEach(ch=>{
     const card = el("div","card ch-card" + (ch.questions.length ? "" : " locked"));
@@ -129,8 +169,9 @@ function renderSubject(sub){
     card.appendChild(top);
     if(ch.questions.length){
       const ct = countTypes(ch.questions);
-      card.appendChild(el("div","ch-count","객관식 "+ct.mc+" · 서술형 "+ct.essay+" · 총 "+ct.total+"문제"));
-      card.onclick = ()=> startQuiz(sub.name+" · "+ch.name, ch.questions, false);
+      const pick = Math.min(CHAPTER_COUNT, ct.total);
+      card.appendChild(el("div","ch-count","랜덤 "+pick+"문제 출제 · (전체 "+ct.total+"개 보유) ♡"));
+      card.onclick = ()=> startQuiz(sub.name+" · "+ch.name, ch.questions, CHAPTER_COUNT);
     }else{
       card.appendChild(el("div","ch-count","아직 문제가 없어요 🌸"));
     }
@@ -144,14 +185,16 @@ function renderSubject(sub){
    화면 3: 퀴즈
    ========================================================= */
 let QZ = null;
-function startQuiz(title, questions, doShuffle){
+function startQuiz(title, pool, count){
+  const questions = pickQuestions(pool, count);
+  questions.forEach(q=>{ delete q._done; });   // 재출제 대비 상태 초기화
   QZ = {
-    title,
-    questions: doShuffle ? shuffle(questions) : questions.slice(),
+    title, pool, count,
+    questions,
     idx: 0,
     mcTotal: 0, mcCorrect: 0,
     essayTotal: 0, essayGood: 0,
-    answered: []  // 각 문항 결과 기록
+    answered: []
   };
   QZ.questions.forEach(q=>{ q.type==="essay" ? QZ.essayTotal++ : QZ.mcTotal++; });
   topSub.textContent = "집중! 천천히 풀어도 괜찮아 ♡";
@@ -171,11 +214,11 @@ function renderQuestion(){
   };
   sec.appendChild(back);
 
-  /* 진행바 */
   const head = el("div","quiz-head");
   head.appendChild(el("div","quiz-title", QZ.title));
   sec.appendChild(head);
 
+  /* 진행바 */
   const pw = el("div","progress-wrap");
   const track = el("div","progress-track");
   const fill = el("div","progress-fill");
@@ -190,11 +233,8 @@ function renderQuestion(){
 
   /* 문제 카드 */
   const card = el("div","qcard");
-  if(q.type==="essay"){
-    card.appendChild(el("div","qtype essay","✍ 서술형"));
-  }else{
-    card.appendChild(el("div","qtype mc","◎ 객관식"));
-  }
+  if(q.type==="essay") card.appendChild(el("div","qtype essay","✍ 서술형"));
+  else card.appendChild(el("div","qtype mc","◎ 객관식"));
   card.appendChild(el("div","qtext", q.q));
 
   if(q.type==="mc") renderMC(card, q);
@@ -204,18 +244,23 @@ function renderQuestion(){
   setTimeout(()=>{ fill.style.width = ((QZ.idx+ (q._done?1:0.06))/total*100)+"%"; },50);
 }
 
-/* ----- 객관식 ----- */
+/* ----- 객관식 (보기 순서 매번 섞기) ----- */
 function renderMC(card, q){
   const wrap = el("div","options");
   const letters = ["A","B","C","D","E"];
+
+  // 보기 섞기: {text, isAnswer} 형태로 섞은 뒤 정답 위치 재계산
+  const shuffled = shuffle(q.options.map((text,i)=>({text, isAnswer:i===q.answer})));
+  const correctIdx = shuffled.findIndex(o=>o.isAnswer);
+
   const opts = [];
-  q.options.forEach((text,i)=>{
-    const o = el("button","opt");
-    o.appendChild(el("span","mark", letters[i]));
-    o.appendChild(el("span",null, text));
-    o.onclick = ()=> chooseMC(i);
-    wrap.appendChild(o);
-    opts.push(o);
+  shuffled.forEach((o,i)=>{
+    const btn = el("button","opt");
+    btn.appendChild(el("span","mark", letters[i]));
+    btn.appendChild(el("span",null, o.text));
+    btn.onclick = ()=> chooseMC(i);
+    wrap.appendChild(btn);
+    opts.push(btn);
   });
   card.appendChild(wrap);
 
@@ -223,26 +268,24 @@ function renderMC(card, q){
   card.appendChild(explain);
 
   const nav = el("div","nav");
-  const spacer = el("div");
-  const next = el("button","btn","다음 ♡");
+  nav.appendChild(el("div"));
+  const next = el("button","btn", QZ.idx<QZ.questions.length-1 ? "다음 ♡" : "결과 보기 🎀");
   next.style.visibility = "hidden";
-  nav.appendChild(spacer);
   nav.appendChild(next);
   card.appendChild(nav);
 
   function chooseMC(i){
     if(q._done) return;
     q._done = true;
-    const correct = q.answer;
     opts.forEach((o,k)=>{
       o.classList.add("disabled");
-      if(k===correct) o.classList.add("correct");
-      if(k===i && i!==correct) o.classList.add("wrong");
+      if(k===correctIdx) o.classList.add("correct");
+      if(k===i && i!==correctIdx) o.classList.add("wrong");
     });
-    const ok = (i===correct);
+    const ok = (i===correctIdx);
     if(ok) QZ.mcCorrect++;
     QZ.answered.push({type:"mc", ok});
-    explain.innerHTML = (ok ? "<b>정답이야! 잘했어 💗</b><br/>" : "<b>아쉬워! 정답은 "+letters[correct]+"번이야 🌸</b><br/>") + q.explain;
+    explain.innerHTML = (ok ? "<b>정답이야! 잘했어 💗</b><br/>" : "<b>아쉬워! 정답은 "+letters[correctIdx]+"번이야 🌸</b><br/>") + q.explain;
     explain.classList.add("show");
     next.style.visibility = "visible";
   }
@@ -263,21 +306,19 @@ function renderEssay(card, q){
   model.appendChild(el("div","mh","모범답안 💌"));
   model.appendChild(el("div","mbody", q.model));
   if(q.keywords && q.keywords.length){
+    const kwLabel = el("div",null,"꼭 들어가면 좋은 키워드 ♡");
+    kwLabel.style.cssText="font-family:'Gaegu',sans-serif;font-weight:700;color:#6b7fd0;margin-top:14px;font-size:14px;";
+    model.appendChild(kwLabel);
     const kw = el("div","kw");
     q.keywords.forEach(k=> kw.appendChild(el("span",null,k)));
-    const kwLabel = el("div",null,"");
-    kwLabel.style.cssText="font-family:'Gaegu',sans-serif;font-weight:700;color:#6b7fd0;margin-top:14px;font-size:14px;";
-    kwLabel.textContent = "꼭 들어가면 좋은 키워드 ♡";
-    model.appendChild(kwLabel);
     model.appendChild(kw);
   }
   card.appendChild(model);
 
   const nav = el("div","nav");
-  const spacer = el("div");
-  const next = el("button","btn","다음 ♡");
+  nav.appendChild(el("div"));
+  const next = el("button","btn", QZ.idx<QZ.questions.length-1 ? "다음 ♡" : "결과 보기 🎀");
   next.style.visibility = "hidden";
-  nav.appendChild(spacer);
   nav.appendChild(next);
   card.appendChild(nav);
 
@@ -286,19 +327,15 @@ function renderEssay(card, q){
     reveal.classList.add("hidden");
     if(!q._done){
       q._done = true;
-      // 자기 채점
       const sc = el("div","selfcheck");
       sc.appendChild(el("span","lbl","스스로 채점해볼까? →"));
       const good = el("button","btn ghost","잘 썼어! 💗");
       const again = el("button","btn ghost","다시 볼래 🌸");
-      good.onclick = ()=>{ QZ.essayGood++; QZ.answered.push({type:"essay",ok:true}); finishEssay(); };
-      again.onclick = ()=>{ QZ.answered.push({type:"essay",ok:false}); finishEssay(); };
+      const finish = ()=>{ good.disabled=true; again.disabled=true; next.style.visibility="visible"; };
+      good.onclick = ()=>{ QZ.essayGood++; QZ.answered.push({type:"essay",ok:true}); finish(); };
+      again.onclick = ()=>{ QZ.answered.push({type:"essay",ok:false}); finish(); };
       sc.appendChild(good); sc.appendChild(again);
       model.appendChild(sc);
-      function finishEssay(){
-        good.disabled = true; again.disabled = true;
-        next.style.visibility = "visible";
-      }
     } else {
       next.style.visibility = "visible";
     }
@@ -353,8 +390,8 @@ function renderResult(){
   box.appendChild(stats);
 
   const actions = el("div","result-actions");
-  const retry = el("button","btn","한 번 더 풀기 ♡");
-  retry.onclick = ()=> startQuiz(QZ.title, QZ.questions, false);
+  const retry = el("button","btn","새 문제로 또 풀기 🔄");  // 매번 새 랜덤 출제
+  retry.onclick = ()=> startQuiz(QZ.title, QZ.pool, QZ.count);
   const home = el("button","btn ghost","과목 선택으로 🏠");
   home.onclick = renderHome;
   actions.appendChild(retry);
@@ -362,8 +399,6 @@ function renderResult(){
   box.appendChild(actions);
 
   sec.appendChild(box);
-
-  /* 축하 하트 폭죽 */
   burst();
   topSub.textContent = "수고했어 지유야! 정말 잘했어 ♡";
   show("result");
